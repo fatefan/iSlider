@@ -222,8 +222,43 @@
         dom: 'dom',
         html: 'html',
         node: 'node',
-        element: 'element'
+        element: 'element',
+        match:'match'
     };
+    
+    /**
+     * 两个值 比较
+     * /
+    iSlider.judgeValue = function (judgeMark,value1,value2) {
+        var booleanValue = true;
+        switch (judgeMark) {
+            case '===':
+                booleanValue = (value1 === value2);
+                break;
+            case '==':
+                booleanValue = (value1 == value2);
+                break;
+            case '!=':
+                booleanValue = (value1 != value2);
+                break;
+            case '!==':
+                booleanValue = (value1 !== value2);
+                break;
+            case '>':
+                booleanValue = (value1 > value2);
+                break;
+            case '>=':
+                booleanValue = (value1 >= value2);
+                break;
+            case '<':
+                booleanValue = (value1 < value2);
+                break;
+            case '<=':
+                booleanValue = (value1 <= value2);
+                break;                                                                                                                                                                        
+        };
+        return booleanValue;
+    }
 
     /**
      * @returns {String}
@@ -892,6 +927,9 @@
             case _NT.html:
                 el.innerHTML = item.content;
                 break;
+            case _NT.match:
+                el.innerHTML = this.repeatVariate(item.content,item.data);
+                break;   
             case _NT.node:
             case _NT.element:
                 // fragment, create container
@@ -906,6 +944,44 @@
                 // do nothing
                 break;
         }
+    };
+
+    /**
+     * 更换内容中 变量数据
+     * {{number?<div>1<div>:null}}
+     * {{number}}
+     */
+    iSliderPrototype.repeatVariate = function (content,data) {
+      var result =  content.replace(/{{[^\n]+}}/g,function (match) {
+            var str = match.slice(2,-2);
+            if(str.indexOf('?') != -1) {
+                var cut = str.split('?');
+                var judgeStr = cut[0].replace(/\s+/g,'');
+                var result = cut[1].split(':');
+                var judgeMark = judgeStr.match(/[!=<>](?:[=]*)/);
+                if(judgeMark != null) {
+                    var judgeValue = judgeStr.split(judgeMark[0]);
+                    var value1 = data[judgeValue[0]] != undefined?data[judgeValue[0]]:judgeValue[0];
+                    var value2 = data[judgeValue[1]]!= undefined?data[judgeValue[1]]:judgeValue[1];
+                    var booleanValue = iSlider.judgeValue(judgeMark[0],value1,value2);
+                    if(booleanValue) {
+                        return this.repeatVariate(result[0],data);
+                    } else {
+                        return this.repeatVariate(result[1],data);
+                    }
+                } else {
+                    var judge = data[judgeStr]?Boolean(data[judgeStr]):Boolean(judgeStr);
+                    if(judge) {
+                        return this.repeatVariate(result[0],data);
+                    } else {
+                        return this.repeatVariate(result[1],data);
+                    }
+                }
+            } else {
+                return data[str]
+            }
+        }.bind(this));
+        return result;
     };
 
     /**
